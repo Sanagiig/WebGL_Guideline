@@ -1,7 +1,8 @@
 "use strict";
 const globalSetting = {
     a_Position: [],
-    a_PointSize: [],
+    a_PointSize: [3.0],
+    u_FragColor: [],
     gl: null,
 };
 function getVShaderSource() {
@@ -16,8 +17,10 @@ function getVShaderSource() {
 }
 function getFShaderSource() {
     return `
+  precision mediump float;
+  uniform vec4 u_FragColor;
     void main(){
-      gl_FragColor = vec4(1.0,0.0,0.0,1.0);
+      gl_FragColor = u_FragColor;
     }
   `;
 }
@@ -33,12 +36,17 @@ function setPointSize(gl, val) {
     let a_PointSize = gl.getAttribLocation(gl.program, "a_PointSize");
     gl.vertexAttrib1f(a_PointSize, val);
 }
+function setPointColor(gl, r, g, b, a = 1) {
+    let u_FragColor = gl.getUniformLocation(gl.program, "u_FragColor");
+    gl.uniform4f(u_FragColor, r, g, b, a);
+}
 function render() {
     const { gl, a_PointSize, a_Position } = globalSetting;
     gl.clear(gl.COLOR_BUFFER_BIT);
-    setPointSize(gl, a_PointSize[0]);
     for (let i = 0; i < a_Position.length; i += 2) {
-        setPosition(gl, a_PointSize[i], a_PointSize[i + 1]);
+        setPosition(gl, a_Position[i], a_Position[i + 1]);
+        setPointSize(gl, a_PointSize[0]);
+        setPointColor(gl, Math.random(), Math.random(), Math.random());
         gl.drawArrays(gl.POINTS, 0, 1);
     }
 }
@@ -50,32 +58,26 @@ function main() {
     }
     initGL(gl);
     render();
-    console.log("load");
 }
-
 window.addEventListener("load", (e) => {
     main();
 });
-
 document.getElementById("webgl").addEventListener("click", (e) => {
     const { a_Position } = globalSetting;
     const target = e.target;
-    const { height, width } = target.getBoundingClientRect();
+    const { height, width, left, top } = target.getBoundingClientRect();
     const midH = height / 2;
     const midW = width / 2;
-    const x = e.clientX - midW;
-    const y = midH - e.clientY;
-    console.log("xx", x / midW, y / midH, globalSetting);
+    const x = e.clientX - midW - left;
+    const y = midH - e.clientY + top;
     a_Position.push(x / midW, y / midH);
     render();
 });
-
 document.getElementById("sizeAddBtn").addEventListener("click", (e) => {
     const { gl, a_PointSize } = globalSetting;
     a_PointSize[0] += 0.5;
     render();
 });
-
 document.getElementById("sizeSubBtn").addEventListener("click", (e) => {
     const { gl, a_PointSize } = globalSetting;
     a_PointSize[0] -= 0.5;
