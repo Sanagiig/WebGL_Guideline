@@ -70,8 +70,8 @@ function main() {
     let matrix = new Matrix();
     let m2 = new Matrix();
     let m3 = new Matrix();
-    matrix.transform(0.5, 0, 0);
-    m2.transform(0.5, 0, 0);
+    matrix.translate(0.5, 0, 0);
+    m2.translate(0.5, 0, 0);
     matrix.rotate(90);
     m3.rotate(90);
     console.log("before m3",m2.dump(),m3.dump())
