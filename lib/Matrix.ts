@@ -61,21 +61,11 @@ export class Matrix {
   }
 
   translate(x: number, y: number, z: number) {
-    this.val[3] += x;
-    this.val[7] += y;
-    this.val[11] += z;
-
-    return this;
-  }
-
-  rotate(ang: number) {
-    const rad = (ang / 180) * Math.PI;
-    const sinA = Math.sin(rad);
-    const cosA = Math.cos(rad);
-    this.val[0] = cosA;
-    this.val[1] = -sinA;
-    this.val[4] = sinA;
-    this.val[5] = cosA;
+    const e = this.val;
+    e[12] += e[0] * x + e[4] * y + e[8] * z;
+    e[13] += e[1] * x + e[5] * y + e[9] * z;
+    e[14] += e[2] * x + e[6] * y + e[10] * z;
+    e[15] += e[3] * x + e[7] * y + e[11] * z;
 
     return this;
   }
@@ -160,6 +150,8 @@ export class Matrix {
     e[13] = 0;
     e[14] = 0;
     e[15] = 1;
+
+    return this;
   }
 
   setRotate(ang: number, x: number = 0, y: number = 0, z: number = 0) {
@@ -229,6 +221,198 @@ export class Matrix {
     this.val[5] = y;
     this.val[10] = z;
   }
+
+  setLookAt(
+    eyeX: number,
+    eyeY: number,
+    eyeZ: number,
+    centerX: number,
+    centerY: number,
+    centerZ: number,
+    upX: number,
+    upY: number,
+    upZ: number,
+  ) {
+    var e, fx, fy, fz, rlf, sx, sy, sz, rls, ux, uy, uz;
+
+    fx = centerX - eyeX;
+    fy = centerY - eyeY;
+    fz = centerZ - eyeZ;
+
+    // Normalize f.
+    rlf = 1 / Math.sqrt(fx * fx + fy * fy + fz * fz);
+    fx *= rlf;
+    fy *= rlf;
+    fz *= rlf;
+
+    // Calculate cross product of f and up.
+    sx = fy * upZ - fz * upY;
+    sy = fz * upX - fx * upZ;
+    sz = fx * upY - fy * upX;
+
+    // Normalize s.
+    rls = 1 / Math.sqrt(sx * sx + sy * sy + sz * sz);
+    sx *= rls;
+    sy *= rls;
+    sz *= rls;
+
+    // Calculate cross product of s and f.
+    ux = sy * fz - sz * fy;
+    uy = sz * fx - sx * fz;
+    uz = sx * fy - sy * fx;
+
+    // Set to this.
+    e = this.val;
+    e[0] = sx;
+    e[1] = ux;
+    e[2] = -fx;
+    e[3] = 0;
+
+    e[4] = sy;
+    e[5] = uy;
+    e[6] = -fy;
+    e[7] = 0;
+
+    e[8] = sz;
+    e[9] = uz;
+    e[10] = -fz;
+    e[11] = 0;
+
+    e[12] = 0;
+    e[13] = 0;
+    e[14] = 0;
+    e[15] = 1;
+
+    // Translate.
+    return this.translate(-eyeX, -eyeY, -eyeZ);
+  }
+
+  setPerspective(fovy: number, aspect: number, near: number, far: number) {
+    var e, rd, s, ct;
+
+    if (near === far || aspect === 0) {
+      throw "null frustum";
+    }
+    if (near <= 0) {
+      throw "near <= 0";
+    }
+    if (far <= 0) {
+      throw "far <= 0";
+    }
+
+    fovy = (Math.PI * fovy) / 180 / 2;
+    s = Math.sin(fovy);
+    if (s === 0) {
+      throw "null frustum";
+    }
+
+    rd = 1 / (far - near);
+    ct = Math.cos(fovy) / s;
+
+    e = this.val;
+
+    e[0] = ct / aspect;
+    e[1] = 0;
+    e[2] = 0;
+    e[3] = 0;
+
+    e[4] = 0;
+    e[5] = ct;
+    e[6] = 0;
+    e[7] = 0;
+
+    e[8] = 0;
+    e[9] = 0;
+    e[10] = -(far + near) * rd;
+    e[11] = -1;
+
+    e[12] = 0;
+    e[13] = 0;
+    e[14] = -2 * near * far * rd;
+    e[15] = 0;
+
+    return this;
+  }
+
+  invert() {
+    return this.setInverseOf(this);
+  };
+
+  /**
+   * Calculate the inverse matrix of specified matrix, and set to this.
+   * @param other The source matrix
+   * @return this
+   */
+  setInverseOf(other:Matrix) {
+    var i, s, d, inv, det;
+
+    s = other.val;
+    d = this.val;
+    inv = new Float32Array(16);
+
+    inv[0]  =   s[5]*s[10]*s[15] - s[5] *s[11]*s[14] - s[9] *s[6]*s[15]
+              + s[9]*s[7] *s[14] + s[13]*s[6] *s[11] - s[13]*s[7]*s[10];
+    inv[4]  = - s[4]*s[10]*s[15] + s[4] *s[11]*s[14] + s[8] *s[6]*s[15]
+              - s[8]*s[7] *s[14] - s[12]*s[6] *s[11] + s[12]*s[7]*s[10];
+    inv[8]  =   s[4]*s[9] *s[15] - s[4] *s[11]*s[13] - s[8] *s[5]*s[15]
+              + s[8]*s[7] *s[13] + s[12]*s[5] *s[11] - s[12]*s[7]*s[9];
+    inv[12] = - s[4]*s[9] *s[14] + s[4] *s[10]*s[13] + s[8] *s[5]*s[14]
+              - s[8]*s[6] *s[13] - s[12]*s[5] *s[10] + s[12]*s[6]*s[9];
+
+    inv[1]  = - s[1]*s[10]*s[15] + s[1] *s[11]*s[14] + s[9] *s[2]*s[15]
+              - s[9]*s[3] *s[14] - s[13]*s[2] *s[11] + s[13]*s[3]*s[10];
+    inv[5]  =   s[0]*s[10]*s[15] - s[0] *s[11]*s[14] - s[8] *s[2]*s[15]
+              + s[8]*s[3] *s[14] + s[12]*s[2] *s[11] - s[12]*s[3]*s[10];
+    inv[9]  = - s[0]*s[9] *s[15] + s[0] *s[11]*s[13] + s[8] *s[1]*s[15]
+              - s[8]*s[3] *s[13] - s[12]*s[1] *s[11] + s[12]*s[3]*s[9];
+    inv[13] =   s[0]*s[9] *s[14] - s[0] *s[10]*s[13] - s[8] *s[1]*s[14]
+              + s[8]*s[2] *s[13] + s[12]*s[1] *s[10] - s[12]*s[2]*s[9];
+
+    inv[2]  =   s[1]*s[6]*s[15] - s[1] *s[7]*s[14] - s[5] *s[2]*s[15]
+              + s[5]*s[3]*s[14] + s[13]*s[2]*s[7]  - s[13]*s[3]*s[6];
+    inv[6]  = - s[0]*s[6]*s[15] + s[0] *s[7]*s[14] + s[4] *s[2]*s[15]
+              - s[4]*s[3]*s[14] - s[12]*s[2]*s[7]  + s[12]*s[3]*s[6];
+    inv[10] =   s[0]*s[5]*s[15] - s[0] *s[7]*s[13] - s[4] *s[1]*s[15]
+              + s[4]*s[3]*s[13] + s[12]*s[1]*s[7]  - s[12]*s[3]*s[5];
+    inv[14] = - s[0]*s[5]*s[14] + s[0] *s[6]*s[13] + s[4] *s[1]*s[14]
+              - s[4]*s[2]*s[13] - s[12]*s[1]*s[6]  + s[12]*s[2]*s[5];
+
+    inv[3]  = - s[1]*s[6]*s[11] + s[1]*s[7]*s[10] + s[5]*s[2]*s[11]
+              - s[5]*s[3]*s[10] - s[9]*s[2]*s[7]  + s[9]*s[3]*s[6];
+    inv[7]  =   s[0]*s[6]*s[11] - s[0]*s[7]*s[10] - s[4]*s[2]*s[11]
+              + s[4]*s[3]*s[10] + s[8]*s[2]*s[7]  - s[8]*s[3]*s[6];
+    inv[11] = - s[0]*s[5]*s[11] + s[0]*s[7]*s[9]  + s[4]*s[1]*s[11]
+              - s[4]*s[3]*s[9]  - s[8]*s[1]*s[7]  + s[8]*s[3]*s[5];
+    inv[15] =   s[0]*s[5]*s[10] - s[0]*s[6]*s[9]  - s[4]*s[1]*s[10]
+              + s[4]*s[2]*s[9]  + s[8]*s[1]*s[6]  - s[8]*s[2]*s[5];
+
+    det = s[0]*inv[0] + s[1]*inv[4] + s[2]*inv[8] + s[3]*inv[12];
+    if (det === 0) {
+      return this;
+    }
+
+    det = 1 / det;
+    for (i = 0; i < 16; i++) {
+      d[i] = inv[i] * det;
+    }
+
+    return this;
+  };
+
+  transpose() {
+    var e, t;
+
+    e = this.val;
+
+    t = e[ 1];  e[ 1] = e[ 4];  e[ 4] = t;
+    t = e[ 2];  e[ 2] = e[ 8];  e[ 8] = t;
+    t = e[ 3];  e[ 3] = e[12];  e[12] = t;
+    t = e[ 6];  e[ 6] = e[ 9];  e[ 9] = t;
+    t = e[ 7];  e[ 7] = e[13];  e[13] = t;
+    t = e[11];  e[11] = e[14];  e[14] = t;
+
+    return this;
+  };
 
   multiply(refMatrix: Matrix) {
     const curData = this.originData();
