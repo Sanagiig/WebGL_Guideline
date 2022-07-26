@@ -188,7 +188,11 @@ function main() {
         const { opt } = globalSetting;
         const { eyeYAng } = opt;
         const { x, y, z } = getEyePosition();
-        const up = eyeYAng % 360 > 180 ? -1 : 1;
+        let up = 1;
+        if (eyeYAng == 90) {
+            opt.eyeYAng = -0;
+            up = -1;
+        }
         v.setLookAt(x, y, z, 0, 0, 0, 0, up, 0);
         p.setPerspective(30, 1, 1, 1000);
         // base
@@ -326,11 +330,11 @@ document.getElementById("webgl").addEventListener("mousemove", (e) => {
         console.log("ang", eyeXAng, eyeYAng, eyeZAng);
         console.log("m", m);
         if (y > lastY) {
-            if (globalSetting.opt.eyeYAng < 360)
+            if (globalSetting.opt.eyeYAng < 900)
                 globalSetting.opt.eyeYAng += 1;
         }
         else {
-            if (globalSetting.opt.eyeYAng > 0)
+            if (globalSetting.opt.eyeYAng > -900)
                 globalSetting.opt.eyeYAng -= 1;
         }
         lastX = x;
