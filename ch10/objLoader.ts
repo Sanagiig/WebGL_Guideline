@@ -320,7 +320,7 @@ window.addEventListener("load", (e) => {
 
     viewMatrix.setIdentity().rotate(tmpX, 1, 0, 0).rotate(tmpY, 0, 1, 0);
     v.multiplyMatrix(viewMatrix);
-    
+
     if (canChange(v)) {
       eyeXAng = tmpX;
       eyeYAng = tmpY;
