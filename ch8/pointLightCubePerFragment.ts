@@ -161,8 +161,8 @@ function main() {
     const u_PointLightPosition = gl.getUniformLocation((gl as any).program, 'u_PointLightPosition');
     const u_Ambient = gl.getUniformLocation((gl as any).program, 'u_Ambient');
     
-    // gl.uniform3f(u_LightColor, 0.3, 0.3, 1.0);
-    // gl.uniform3f(u_LightDirection, 5.0, 10.0, 4.0);
+    gl.uniform3f(u_LightColor, 0.3, 0.3, 1.0);
+    gl.uniform3f(u_LightDirection, 15.0, 18.0, 4.0);
     gl.uniform3f(u_PointLightColor, 1, 1, 1);
     gl.uniform3f(u_PointLightPosition, 0, 1.2, 1.2);
     gl.uniform3f(u_Ambient, 0.2, 0.2, 0.2);

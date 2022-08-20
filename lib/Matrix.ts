@@ -67,6 +67,11 @@ export class Matrix {
     return this;
   }
 
+  // translate(x: number, y: number, z: number) {
+  //   this.multiply(new Matrix().setTranslate(x,y,z));
+  //   return this;
+  // }
+
   setTranslate(x: number, y: number, z: number) {
     var e = this.val;
     e[0] = 1;  e[4] = 0;  e[8]  = 0;  e[12] = x;
@@ -280,6 +285,18 @@ export class Matrix {
     this.val[10] = z;
   }
 
+  lookAt(eyeX: number,
+    eyeY: number,
+    eyeZ: number,
+    centerX: number,
+    centerY: number,
+    centerZ: number,
+    upX: number,
+    upY: number,
+    upZ: number,){
+    return this.concat(new Matrix().setLookAt(eyeX, eyeY, eyeZ, centerX, centerY, centerZ, upX, upY, upZ));
+  }
+
   setLookAt(
     eyeX: number,
     eyeY: number,
@@ -296,51 +313,51 @@ export class Matrix {
     fx = centerX - eyeX;
     fy = centerY - eyeY;
     fz = centerZ - eyeZ;
-
+  
     // Normalize f.
-    rlf = 1 / Math.sqrt(fx * fx + fy * fy + fz * fz);
+    rlf = 1 / Math.sqrt(fx*fx + fy*fy + fz*fz);
     fx *= rlf;
     fy *= rlf;
     fz *= rlf;
-
+  
     // Calculate cross product of f and up.
     sx = fy * upZ - fz * upY;
     sy = fz * upX - fx * upZ;
     sz = fx * upY - fy * upX;
-
+  
     // Normalize s.
-    rls = 1 / Math.sqrt(sx * sx + sy * sy + sz * sz);
+    rls = 1 / Math.sqrt(sx*sx + sy*sy + sz*sz);
     sx *= rls;
     sy *= rls;
     sz *= rls;
-
+  
     // Calculate cross product of s and f.
     ux = sy * fz - sz * fy;
     uy = sz * fx - sx * fz;
     uz = sx * fy - sy * fx;
-
+  
     // Set to this.
     e = this.val;
     e[0] = sx;
     e[1] = ux;
     e[2] = -fx;
     e[3] = 0;
-
+  
     e[4] = sy;
     e[5] = uy;
     e[6] = -fy;
     e[7] = 0;
-
+  
     e[8] = sz;
     e[9] = uz;
     e[10] = -fz;
     e[11] = 0;
-
+  
     e[12] = 0;
     e[13] = 0;
     e[14] = 0;
     e[15] = 1;
-
+  
     // Translate.
     return this.translate(-eyeX, -eyeY, -eyeZ);
   }
@@ -349,46 +366,46 @@ export class Matrix {
     var e, rd, s, ct;
 
     if (near === far || aspect === 0) {
-      throw "null frustum";
+      throw 'null frustum';
     }
     if (near <= 0) {
-      throw "near <= 0";
+      throw 'near <= 0';
     }
     if (far <= 0) {
-      throw "far <= 0";
+      throw 'far <= 0';
     }
-
-    fovy = (Math.PI * fovy) / 180 / 2;
+  
+    fovy = Math.PI * fovy / 180 / 2;
     s = Math.sin(fovy);
     if (s === 0) {
-      throw "null frustum";
+      throw 'null frustum';
     }
-
+  
     rd = 1 / (far - near);
     ct = Math.cos(fovy) / s;
-
+  
     e = this.val;
-
-    e[0] = ct / aspect;
-    e[1] = 0;
-    e[2] = 0;
-    e[3] = 0;
-
-    e[4] = 0;
-    e[5] = ct;
-    e[6] = 0;
-    e[7] = 0;
-
-    e[8] = 0;
-    e[9] = 0;
+  
+    e[0]  = ct / aspect;
+    e[1]  = 0;
+    e[2]  = 0;
+    e[3]  = 0;
+  
+    e[4]  = 0;
+    e[5]  = ct;
+    e[6]  = 0;
+    e[7]  = 0;
+  
+    e[8]  = 0;
+    e[9]  = 0;
     e[10] = -(far + near) * rd;
     e[11] = -1;
-
+  
     e[12] = 0;
     e[13] = 0;
     e[14] = -2 * near * far * rd;
     e[15] = 0;
-
+  
     return this;
   }
 
@@ -542,7 +559,7 @@ export class Matrix {
 
 export class Vector3{
   val:Float32Array;
-  constructor(x:number = 0,y:number = 0,z:number = 0){
+  constructor([x = 1,y = 1,z = 1]:number[] | Float32Array = []){
     this.val = new Float32Array([x,y,z]);
   }
 
@@ -552,4 +569,30 @@ export class Vector3{
     this.val[2] *= n;
     return this;
   }
+
+  multiplyMatrix(m:Matrix){
+    const {val} = this;
+    const mv = m.originData();
+    let x = val[0],y = val[1] , z = val[2],w = 1;
+    for(let i=0;i<val.length;++i){
+      const mi = i * 4;
+      val[i] = x * mv[mi] + y * mv[mi + 1] + z * mv[mi + 2];
+    }
+    return this;
+  }
+
+  normalize() {
+    var v = this.val;
+    var c = v[0], d = v[1], e = v[2], g = Math.sqrt(c*c+d*d+e*e);
+    if(g){
+      if(g == 1)
+          return this;
+     } else {
+       v[0] = 0; v[1] = 0; v[2] = 0;
+       return this;
+     }
+     g = 1/g;
+     v[0] = c*g; v[1] = d*g; v[2] = e*g;
+     return this;
+  };
 }
